@@ -18,7 +18,6 @@ static/
 # 临时文件
 *.tar.gz
 extract.*
-update.*
 
 # 日志目录
 logs/
