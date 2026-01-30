@@ -1,0 +1,30 @@
+# 配置文件（包含敏感信息）
+config.yaml
+.github_token
+
+README_CN.md
+LICENSE
+
+# 版本信息
+version.txt
+
+# 二进制文件
+cli-proxy-api
+cli-proxy-api.exe
+
+# 静态文件
+static/
+
+# 临时文件
+*.tar.gz
+extract.*
+update.*
+
+# 日志目录
+logs/
+
+# macOS 系统文件
+.DS_Store
+
+# macOS Launch Agent
+*.plist
