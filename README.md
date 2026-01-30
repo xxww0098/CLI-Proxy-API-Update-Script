@@ -153,3 +153,17 @@ chmod +x run.sh start.sh update.js cli-proxy-api
 ```
 
 停止命令会在启动后显示。
+
+## Web UI 
+
+基础路径：http://localhost:8317/management.html
+
+## 使用方法
+
+1. 首次运行脚本，会自动下载必要文件
+2. 重命名配置文件：
+   ```bash
+   cp config.example.yaml config.yaml
+   ```
+3. 编辑 `config.yaml`，填入 `secret-key`
+4. 重新启动脚本，完成配置
