@@ -6,5 +6,15 @@ if exist .github_token (
     set /p GITHUB_TOKEN=<.github_token
 )
 
-node update.js
-cli-proxy-api --config config.yaml
+set "BINARY_NAME=cli-proxy-api"
+set "IS_PLUS=false"
+
+for %%a in (%*) do (
+    if "%%a"=="--plus" (
+        set "BINARY_NAME=cli-proxy-api-plus"
+        set "IS_PLUS=true"
+    )
+)
+
+node update.js %*
+%BINARY_NAME% --config config.yaml

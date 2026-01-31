@@ -11,11 +11,23 @@
 # 后台运行（快捷指令/自动化）
 ./start.sh
 
+# Plus 版本前台运行
+./run.sh --plus
+
+# Plus 版本后台运行
+./start.sh --plus
+
 # 手动更新
 node update.js
 
 # 强制更新
 node update.js --force
+
+# 更新 Plus 版本
+node update.js --plus
+
+# 强制更新 Plus 版本
+node update.js --plus --force
 ```
 
 ### Windows
@@ -27,11 +39,23 @@ run.bat
 # 后台运行
 start.bat
 
+# Plus 版本前台运行
+run.bat --plus
+
+# Plus 版本后台运行
+start.bat --plus
+
 # 手动更新
 node update.js
 
 # 强制更新
 node update.js --force
+
+# 更新 Plus 版本
+node update.js --plus
+
+# 强制更新 Plus 版本
+node update.js --plus --force
 ```
 
 ## 脚本说明
@@ -40,8 +64,16 @@ node update.js --force
 |------|------|
 | `run.sh` / `run.bat` | 前台运行，显示启动信息 |
 | `start.sh` / `start.bat` | 后台运行，立即返回 |
+| `close.sh` / `close.bat` | 关闭所有后台运行的服务 |
 | `update.js` | 更新脚本，下载最新版本 |
 | `config.yaml` | 配置文件 |
+
+### 版本说明
+
+- **普通版本**: `cli-proxy-api` - 标准功能
+- **Plus 版本**: `cli-proxy-api-plus` - 增强功能版本
+
+使用 `--plus` 参数可切换到 Plus 版本，两个版本可共存，通过不同命令启动。
 
 ## GitHub Token 配置
 
@@ -77,13 +109,24 @@ chmod 600 .github_token
 查看运行状态：
 
 ```bash
+# 普通版本
 ps aux | grep cli-proxy-api
+
+# Plus 版本
+ps aux | grep cli-proxy-api-plus
 ```
 
 停止服务：
 
 ```bash
+# 一键停止所有版本
+./close.sh
+
+# 手动停止普通版本
 pkill -f "cli-proxy-api"
+
+# 手动停止 Plus 版本
+pkill -f "cli-proxy-api-plus"
 ```
 
 ### Windows
@@ -91,13 +134,24 @@ pkill -f "cli-proxy-api"
 查看运行状态：
 
 ```batch
+# 普通版本
 tasklist | findstr cli-proxy-api
+
+# Plus 版本
+tasklist | findstr cli-proxy-api-plus
 ```
 
 停止服务：
 
 ```batch
+# 一键停止所有版本
+close.bat
+
+# 手动停止普通版本
 taskkill /F /IM cli-proxy-api.exe
+
+# 手动停止 Plus 版本
+taskkill /F /IM cli-proxy-api-plus.exe
 ```
 
 ## 查看日志
@@ -122,7 +176,26 @@ type "%LOG%" | more
 
 - 启动时自动检查并更新主程序和管理面板
 - 使用 `--force` 或 `-f` 参数强制重新下载
+- 使用 `--plus` 参数切换到 Plus 版本
 - 版本信息保存在 `version.txt`
+
+### 版本切换
+
+普通版本和 Plus 版本使用独立的版本记录，可以同时安装：
+
+```bash
+# 安装普通版本
+node update.js
+
+# 安装 Plus 版本
+node update.js --plus
+
+# 启动普通版本
+./run.sh
+
+# 启动 Plus 版本
+./run.sh --plus
+```
 
 ## 平台支持
 
@@ -137,7 +210,7 @@ type "%LOG%" | more
 如果执行时提示权限不足：
 
 ```bash
-chmod +x run.sh start.sh update.js cli-proxy-api
+chmod +x run.sh start.sh close.sh update.js cli-proxy-api cli-proxy-api-plus
 ```
 
 ### Windows

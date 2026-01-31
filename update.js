@@ -6,10 +6,14 @@ const zlib = require('zlib');
 const os = require('os');
 const { execFileSync } = require('child_process');
 
+const isPlus = process.argv.includes('--plus');
+
 const CONFIG = {
-  apiEndpoint: 'https://api.github.com/repos/router-for-me/CLIProxyAPI/releases/latest',
+  apiEndpoint: isPlus
+    ? 'https://api.github.com/repos/router-for-me/CLIProxyAPIPlus/releases/latest'
+    : 'https://api.github.com/repos/router-for-me/CLIProxyAPI/releases/latest',
   panelApiEndpoint: 'https://api.github.com/repos/router-for-me/Cli-Proxy-API-Management-Center/releases/latest',
-  binaryName: 'cli-proxy-api',
+  binaryName: isPlus ? 'cli-proxy-api-plus' : 'cli-proxy-api',
   panelFileName: 'management.html',
   checksumsFile: 'checksums.txt',
   maxSize: 100 * 1024 * 1024,
@@ -65,9 +69,10 @@ const parseChecksums = (content) => {
 
 const findMatchingAsset = (assets, checksums, platform, arch, version) => {
   const cleanVersion = version.startsWith('v') ? version.slice(1) : version;
+  const prefix = isPlus ? 'CLIProxyAPIPlus' : 'CLIProxyAPI';
   const patterns = [
-    `CLIProxyAPI_${cleanVersion}_${platform}_${arch}.tar.gz`,
-    `CLIProxyAPI_${cleanVersion}_${platform}_${arch}.zip`
+    `${prefix}_${cleanVersion}_${platform}_${arch}.tar.gz`,
+    `${prefix}_${cleanVersion}_${platform}_${arch}.zip`
   ];
 
   for (const pattern of patterns) {
@@ -158,7 +163,8 @@ const download = (url, dest, maxSize, label = '') => new Promise((resolve, rejec
       if (total > 0) {
         const percent = Math.floor((downloaded / total) * 100);
         if (percent !== lastPercent && percent % 10 === 0) {
-          process.stdout.write(`\r[下载${label ? ' ' + label : ''}] ${percent}%`);
+          const labelText = label ? ` ${label}` : '';
+          process.stdout.write(`\r   📥 [下载${labelText}] ${percent}%`);
           lastPercent = percent;
         }
       }
@@ -209,7 +215,9 @@ const extractBinary = (tarGzPath, destDir) => {
       const isExecutable = (mode & 0o111) !== 0;
       
       // 智能匹配：优先匹配目标名，其次匹配大体积可执行文件
-      const targetNames = [CONFIG.binaryName, 'cli-proxy-api', 'cliproxyapi', 'cliproxy'];
+      const targetNames = isPlus
+        ? [CONFIG.binaryName, 'cli-proxy-api-plus', 'cliproxyapiplus', 'cliproxyplus']
+        : [CONFIG.binaryName, 'cli-proxy-api', 'cliproxyapi', 'cliproxy'];
       const nameMatch = targetNames.find(n => lowerName === n || lowerName.replace(/-/g, '') === n.replace(/-/g, ''));
       
       if (nameMatch || (isExecutable && fileSize > 1000000)) { // 1MB+
@@ -298,23 +306,42 @@ const verifyBinary = (binPath) => {
 const readVersionFile = () => {
   const versionFile = safePath('version.txt');
   if (!fs.existsSync(versionFile)) {
-    return { binary: '0.0.0', panel: '0.0.0' };
+    return { binary: '0.0.0', plus: '0.0.0', panel: '0.0.0' };
   }
   const content = fs.readFileSync(versionFile, 'utf8').trim();
   try {
     const data = JSON.parse(content);
     return {
       binary: data.binary || '0.0.0',
+      plus: data.plus || '0.0.0',
       panel: data.panel || '0.0.0'
     };
   } catch {
-    return { binary: content || '0.0.0', panel: '0.0.0' };
+    return { binary: content || '0.0.0', plus: '0.0.0', panel: '0.0.0' };
   }
 };
 
-const writeVersionFile = (binaryVer, panelVer) => {
+const writeVersionFile = (binaryVer, panelVer, isPlusVersion = false) => {
   const versionFile = safePath('version.txt');
-  fs.writeFileSync(versionFile, JSON.stringify({ binary: binaryVer, panel: panelVer }, null, 2) + '\n');
+  let data = {};
+  
+  // 读取现有版本信息
+  if (fs.existsSync(versionFile)) {
+    try {
+      const content = fs.readFileSync(versionFile, 'utf8').trim();
+      data = JSON.parse(content);
+    } catch {}
+  }
+  
+  // 更新对应版本的版本号
+  if (isPlusVersion) {
+    data.plus = binaryVer;
+  } else {
+    data.binary = binaryVer;
+  }
+  data.panel = panelVer;
+  
+  fs.writeFileSync(versionFile, JSON.stringify(data, null, 2) + '\n');
 };
 
 async function updatePanel() {
@@ -330,8 +357,8 @@ async function updatePanel() {
     const versions = readVersionFile();
     const localPanelVer = versions.panel;
 
-    console.log(`   🎨 本地版本: ${localPanelVer}`);
-    console.log('   🌐 检查最新版本...');
+    console.log(`   🎨 [UI界面] 本地版本: ${localPanelVer}`);
+    console.log('   🌐 [UI界面] 检查最新版本...');
     const release = await httpsGet(CONFIG.panelApiEndpoint);
 
     if (!release.tag_name || !Array.isArray(release.assets)) {
@@ -339,16 +366,16 @@ async function updatePanel() {
     }
 
     const latestPanelVer = release.tag_name;
-    console.log(`   ✨ 最新版本: ${latestPanelVer}`);
+    console.log(`   ✨ [UI界面] 最新版本: ${latestPanelVer}`);
 
     const panelUpdated = forceUpdate || localPanelVer !== latestPanelVer;
     if (!panelUpdated) {
-      console.log('   ✅ 已是最新版本');
+      console.log('   ✅ [UI界面] 已是最新版本');
       return { updated: false, version: localPanelVer };
     }
 
     if (forceUpdate) {
-      console.log('   ⚡ 强制更新模式');
+      console.log('   ⚡ [UI界面] 强制更新模式');
     }
 
     const asset = release.assets.find(a => a?.name === CONFIG.panelFileName);
@@ -357,8 +384,8 @@ async function updatePanel() {
       throw new Error(`未找到管理面板文件 ${CONFIG.panelFileName}`);
     }
 
-    console.log(`   📥 下载 ${asset.name} (${(asset.size/1024/1024).toFixed(1)}MB)`);
-    await download(asset.browser_download_url, tmpPanel, CONFIG.panelMaxSize, '管理面板');
+    console.log(`   📥 [UI界面] 下载 ${asset.name} (${(asset.size/1024/1024).toFixed(1)}MB)`);
+    await download(asset.browser_download_url, tmpPanel, CONFIG.panelMaxSize, 'UI界面');
 
     const content = fs.readFileSync(tmpPanel, 'utf8');
     if (!content.includes('<!DOCTYPE html>') && !content.includes('<html')) {
@@ -367,7 +394,7 @@ async function updatePanel() {
 
     fs.renameSync(tmpPanel, panelFile);
 
-    console.log(`   ✅ 成功更新至 ${latestPanelVer}`);
+    console.log(`   ✅ [UI界面] 成功更新至 ${latestPanelVer}`);
     return { updated: true, version: latestPanelVer };
 
   } catch (err) {
@@ -386,7 +413,11 @@ async function main() {
 
   try {
     console.log('');
-    console.log('🔄  CLI Proxy API 更新脚本');
+    if (isPlus) {
+      console.log('🔄  CLI Proxy API Plus 更新脚本');
+    } else {
+      console.log('🔄  CLI Proxy API 更新脚本');
+    }
     console.log('');
 
     const { platform, arch } = getPlatformInfo();
@@ -405,10 +436,11 @@ async function main() {
     fs.mkdirSync(tmpDir, { mode: 0o755, recursive: true });
 
     const versions = readVersionFile();
-    const localVer = versions.binary;
-    console.log(`   📦 本地版本: ${localVer}`);
+    const localVer = isPlus ? versions.plus : versions.binary;
+    const versionLabel = isPlus ? '[Plus主程序]' : '[主程序]';
+    console.log(`   📦 ${versionLabel} 本地版本: ${localVer}`);
 
-    console.log('   🌐 检查最新版本...');
+    console.log(`   🌐 ${versionLabel} 检查最新版本...`);
     const release = await httpsGet(CONFIG.apiEndpoint);
 
     if (!release.tag_name || !Array.isArray(release.assets)) {
@@ -416,15 +448,15 @@ async function main() {
     }
 
     const latestVer = release.tag_name;
-    console.log(`   ✨ 最新版本: ${latestVer}`);
+    console.log(`   ✨ ${versionLabel} 最新版本: ${latestVer}`);
 
     const binaryUpdated = forceUpdate || localVer !== latestVer;
     if (forceUpdate && localVer === latestVer) {
-      console.log('   ⚡ 强制更新模式');
+      console.log(`   ⚡ ${versionLabel} 强制更新模式`);
     }
 
     if (!binaryUpdated && !panelResult.updated) {
-      console.log('   ✅ 已是最新版本');
+      console.log(`   ✅ ${versionLabel} 已是最新版本`);
       try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch {}
       try { fs.unlinkSync(tmpTar); } catch {}
       return;
@@ -437,14 +469,14 @@ async function main() {
         throw new Error(`未找到 ${platform}-${arch} 安装包 (${latestVer})`);
       }
 
-      console.log(`   📥 下载 ${asset.name} (${(asset.size/1024/1024).toFixed(1)}MB)`);
-      await download(asset.browser_download_url, tmpTar, CONFIG.maxSize, '主程序');
+      console.log(`   📥 ${versionLabel} 下载 ${asset.name} (${(asset.size/1024/1024).toFixed(1)}MB)`);
+      await download(asset.browser_download_url, tmpTar, CONFIG.maxSize, isPlus ? 'Plus' : '普通');
 
-      console.log('   📦 解压中...');
+      console.log(`   📦 ${versionLabel} 解压中...`);
       const { execSync } = require('child_process');
       execSync(`tar -xzf "${tmpTar}" -C "${tmpDir}"`);
 
-      console.log('   📂 移动文件...');
+      console.log(`   📂 ${versionLabel} 移动文件...`);
       fs.readdirSync(tmpDir).forEach(file => {
         if (path.basename(file).toLowerCase() === 'readme.md') {
           return;
@@ -456,12 +488,12 @@ async function main() {
         fs.renameSync(src, dest);
       });
 
-      console.log('   ✅ 二进制验证通过');
+      console.log(`   ✅ ${versionLabel} 二进制验证通过`);
     }
 
     const finalBinaryVer = binaryUpdated ? latestVer : localVer;
     const finalPanelVer = panelResult.updated ? panelResult.version : versions.panel;
-    writeVersionFile(finalBinaryVer, finalPanelVer);
+    writeVersionFile(finalBinaryVer, finalPanelVer, isPlus);
 
     try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch {}
     try { fs.unlinkSync(tmpTar); } catch {}
@@ -469,8 +501,12 @@ async function main() {
 
     console.log('');
     console.log('✅ 更新完成');
-    console.log(`   📦 主程序: ${finalBinaryVer}`);
-    console.log(`   🎨 管理面板: ${finalPanelVer}`);
+    if (isPlus) {
+      console.log(`   📦 [Plus主程序] ${finalBinaryVer}`);
+    } else {
+      console.log(`   📦 [主程序] ${finalBinaryVer}`);
+    }
+    console.log(`   🎨 [UI界面] ${finalPanelVer}`);
     console.log(`   📍 路径: ${currentBin}`);
     console.log('');
 
