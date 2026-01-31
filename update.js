@@ -26,7 +26,7 @@ function safeRemove(pathToRemove) {
   }
 }
 
-const isPlus = process.argv.includes('--plus');
+const isPlus = process.argv.includes('--plus') || process.argv.includes('-p');
 
 // 创建代理下载器实例
 const downloader = new ProxyDownloader({
