@@ -11,7 +11,7 @@ nano config.yaml  # 找到第 19 行 secret-key，设置你的密钥
 # 2️⃣ 启动项目
 ./run.sh          # 前台运行
 # 或
-./start.sh        # 后台运行
+./run-bg.sh        # 后台运行
 
 # 3️⃣ 访问管理后台
 # 打开浏览器访问: http://localhost:8317/management.html
@@ -23,9 +23,9 @@ nano config.yaml  # 找到第 19 行 secret-key，设置你的密钥
 | 操作 | macOS / Linux | Windows |
 |------|---------------|---------|
 | 前台运行 | `./run.sh` | `run.bat` |
-| 后台运行 | `./start.sh` | `start.bat` |
+| 后台运行 | `./run-bg.sh` | `run-bg.bat` |
 | Plus 版本（前台） | `./run.sh --plus` | `run.bat --plus` |
-| Plus 版本（后台） | `./start.sh --plus` | `start.bat --plus` |
+| Plus 版本（后台） | `./run-bg.sh --plus` | `run-bg.bat --plus` |
 | 手动更新 | `node update.js` | `node update.js` |
 | 强制更新 | `node update.js --force` | `node update.js --force` |
 
@@ -34,7 +34,7 @@ nano config.yaml  # 找到第 19 行 secret-key，设置你的密钥
 | 脚本 | 功能 | 特性 |
 |------|------|------|
 | `run.sh` / `run.bat` | 前台运行，实时查看日志 | ✅ 自动端口检测与清理 |
-| `start.sh` / `start.bat` | 后台静默运行 | ✅ 自动端口检测与清理 |
+| `run-bg.sh` / `run-bg.bat` | 后台静默运行 | ✅ 自动端口检测与清理 |
 | `close.sh` / `close.bat` | 停止所有运行实例 | - |
 | `update.js` | 更新到最新版本 | 支持 `--force` 强制更新 |
 
@@ -58,7 +58,7 @@ nano config.yaml  # 找到第 19 行 secret-key，设置你的密钥
 | 标准版 | `cli-proxy-api` | 标准功能 |
 | Plus 版 | `cli-proxy-api-plus` | 增强功能 |
 
-> 两个版本可共存，使用 `--plus` 参数切换
+> 使用 `--plus` 参数切换 Plus 版本，两个版本共享同一个配置文件
 
 ## 🔑 GitHub Token 配置
 
@@ -147,7 +147,7 @@ nano config.yaml
 创建快捷指令，添加「运行 Shell 脚本」动作：
 
 ```bash
-/Applications/CLIProxyApi/start.sh
+/Applications/CLIProxyApi/run-bg.sh
 ```
 
 ## ⚙️ 平台支持
@@ -161,7 +161,7 @@ nano config.yaml
 ### macOS / Linux
 
 ```bash
-chmod +x run.sh start.sh close.sh cli-proxy-api cli-proxy-api-plus
+chmod +x run.sh run-bg.sh close.sh cli-proxy-api cli-proxy-api-plus
 ```
 
 ### Windows
