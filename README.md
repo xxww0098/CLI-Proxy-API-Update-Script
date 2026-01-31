@@ -309,17 +309,6 @@ logs-max-total-size-mb: 100  # 限制为 100MB
 2. 检查系统资源: CPU、内存、磁盘空间
 3. 提交 Issue: [GitHub Issues](https://github.com/router-for-me/CLIProxyAPI/issues)
 
-## 📝 更新日志
-
-### 最新优化 (当前版本)
-- ✅ 修复命令注入安全漏洞
-- ✅ 改进端口冲突处理,支持优雅关闭
-- ✅ 修复 Windows 批处理脚本参数传递错误
-- ✅ 添加重定向深度限制,防止无限循环
-- ✅ 重构重复代码,提升代码质量
-- ✅ 启用日志大小限制,默认 100MB
-- ✅ 完善文档和故障排查指南
-
 ## 🔐 安全最佳实践
 
 1. **定期更新密钥**: 定期修改 `secret-key` 和 API 密钥
@@ -327,7 +316,3 @@ logs-max-total-size-mb: 100  # 限制为 100MB
 3. **启用 TLS**: 生产环境建议启用 HTTPS
 4. **日志审计**: 定期检查 `logs/` 目录中的访问日志
 5. **备份配置**: 定期备份 `config.yaml` 和认证文件
-
-## 📄 许可证
-
-请查看项目仓库的 LICENSE 文件
