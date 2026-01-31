@@ -1,223 +1,148 @@
-# CLI Proxy API Update Script
+# CLI-Proxy-API-Update-Script
 
-## 快速开始
+## 🚀 快速开始
 
-### macOS / Linux
-
-```bash
-# 前台运行（查看日志）
-./run.sh
-
-# 后台运行（快捷指令/自动化）
-./start.sh
-
-# Plus 版本前台运行
-./run.sh --plus
-
-# Plus 版本后台运行
-./start.sh --plus
-
-# 手动更新
-node update.js
-
-# 强制更新
-node update.js --force
-
-# 更新 Plus 版本
-node update.js --plus
-
-# 强制更新 Plus 版本
-node update.js --plus --force
-```
-
-### Windows
-
-```batch
-# 前台运行
-run.bat
-
-# 后台运行
-start.bat
-
-# Plus 版本前台运行
-run.bat --plus
-
-# Plus 版本后台运行
-start.bat --plus
-
-# 手动更新
-node update.js
-
-# 强制更新
-node update.js --force
-
-# 更新 Plus 版本
-node update.js --plus
-
-# 强制更新 Plus 版本
-node update.js --plus --force
-```
-
-## 脚本说明
-
-| 文件 | 说明 |
-|------|------|
-| `run.sh` / `run.bat` | 前台运行，显示启动信息 |
-| `start.sh` / `start.bat` | 后台运行，立即返回 |
-| `close.sh` / `close.bat` | 关闭所有后台运行的服务 |
-| `update.js` | 更新脚本，下载最新版本 |
-| `config.yaml` | 配置文件 |
-
-### 版本说明
-
-- **普通版本**: `cli-proxy-api` - 标准功能
-- **Plus 版本**: `cli-proxy-api-plus` - 增强功能版本
-
-使用 `--plus` 参数可切换到 Plus 版本，两个版本可共存，通过不同命令启动。
-
-## GitHub Token 配置
-
-为避免 GitHub API 限流，建议配置 GitHub Token：
-
-### macOS / Linux
-
-创建 `.github_token` 文件：
+### 三步启动
 
 ```bash
-echo "你的_GITHUB_TOKEN" > .github_token
+# 1️⃣ 编辑配置文件，设置 secret-key
+nano config.yaml  # 找到第 19 行 secret-key，设置你的密钥
+
+# 2️⃣ 启动项目
+./run.sh          # 前台运行
+# 或
+./start.sh        # 后台运行
+
+# 3️⃣ 访问管理后台
+# 打开浏览器访问: http://localhost:8317/management.html
+# 使用你设置的 secret-key 登录
+```
+
+### 操作对照表
+
+| 操作 | macOS / Linux | Windows |
+|------|---------------|---------|
+| 前台运行 | `./run.sh` | `run.bat` |
+| 后台运行 | `./start.sh` | `start.bat` |
+| Plus 版本（前台） | `./run.sh --plus` | `run.bat --plus` |
+| Plus 版本（后台） | `./start.sh --plus` | `start.bat --plus` |
+| 手动更新 | `node update.js` | `node update.js` |
+| 强制更新 | `node update.js --force` | `node update.js --force` |
+
+## 📋 脚本功能
+
+| 脚本 | 功能 | 特性 |
+|------|------|------|
+| `run.sh` / `run.bat` | 前台运行，实时查看日志 | ✅ 自动端口检测与清理 |
+| `start.sh` / `start.bat` | 后台静默运行 | ✅ 自动端口检测与清理 |
+| `close.sh` / `close.bat` | 停止所有运行实例 | - |
+| `update.js` | 更新到最新版本 | 支持 `--force` 强制更新 |
+
+### ⚡ 端口智能管理
+
+启动脚本会自动处理端口冲突：
+
+```
+1. 读取 config.yaml 中的端口配置 (默认: 8317)
+2. 检测端口是否被占用
+3. 自动终止占用进程
+4. 启动服务
+```
+
+**无需手动停止旧进程，直接启动即可！**
+
+### 🔄 版本说明
+
+| 版本 | 二进制文件 | 说明 |
+|------|-----------|------|
+| 标准版 | `cli-proxy-api` | 标准功能 |
+| Plus 版 | `cli-proxy-api-plus` | 增强功能 |
+
+> 两个版本可共存，使用 `--plus` 参数切换
+
+## 🔑 GitHub Token 配置
+
+为避免 API 限流，建议配置 GitHub Token：
+
+| 平台 | 配置方法 |
+|------|---------|
+| macOS / Linux | `cp .example.github_token .github_token` 然后编辑填入 Token |
+| Windows | 复制 `.example.github_token` 为 `.github_token` 然后编辑 |
+| 快捷指令 | 设置环境变量 `GITHUB_TOKEN` |
+
+**获取 Token**: [GitHub Settings](https://github.com/settings/tokens) → 选择 `public_repo` 权限
+
+```bash
+# macOS / Linux 快速配置
+cp .example.github_token .github_token
+echo "YOUR_GITHUB_TOKEN" > .github_token
 chmod 600 .github_token
 ```
 
-### Windows
+## 🛠️ 服务管理
 
-创建 `.github_token` 文件（内容为 Token 本身，不含引号）
+### 查看运行状态
 
-### macOS 快捷指令环境变量
+| 平台 | 命令 |
+|------|------|
+| macOS / Linux | `ps aux \| grep cli-proxy-api` |
+| Windows | `tasklist \| findstr cli-proxy-api` |
 
-在快捷指令的 Shell 脚本动作中添加环境变量：
-- 变量名：`GITHUB_TOKEN`
-- 值：你的 GitHub Personal Access Token
+### 停止服务
 
-获取 Token：
-1. 访问 https://github.com/settings/tokens
-2. 生成新 Token，选择 `public_repo` 权限即可
+| 方式 | macOS / Linux | Windows |
+|------|---------------|---------|
+| 一键停止 | `./close.sh` | `close.bat` |
+| 按进程名 | `pkill -f "cli-proxy-api"` | `taskkill /F /IM cli-proxy-api.exe` |
+| 按端口 | `lsof -ti:8317 \| xargs kill -9` | - |
 
-## 后台运行管理
-
-### macOS / Linux
-
-查看运行状态：
-
-```bash
-# 普通版本
-ps aux | grep cli-proxy-api
-
-# Plus 版本
-ps aux | grep cli-proxy-api-plus
-```
-
-停止服务：
-
-```bash
-# 一键停止所有版本
-./close.sh
-
-# 手动停止普通版本
-pkill -f "cli-proxy-api"
-
-# 手动停止 Plus 版本
-pkill -f "cli-proxy-api-plus"
-```
-
-### Windows
-
-查看运行状态：
-
-```batch
-# 普通版本
-tasklist | findstr cli-proxy-api
-
-# Plus 版本
-tasklist | findstr cli-proxy-api-plus
-```
-
-停止服务：
-
-```batch
-# 一键停止所有版本
-close.bat
-
-# 手动停止普通版本
-taskkill /F /IM cli-proxy-api.exe
-
-# 手动停止 Plus 版本
-taskkill /F /IM cli-proxy-api-plus.exe
-```
-
-## 查看日志
+### 查看日志
 
 当 `config.yaml` 中 `logging-to-file: true` 时：
 
-### macOS / Linux
+| 平台 | 命令 |
+|------|------|
+| macOS / Linux | `tail -f $(ls -t logs/*.log 2>/dev/null \| head -1)` |
+| Windows | 查看 `logs` 目录下最新的 `.log` 文件 |
+
+## 📦 初次使用
+
+### 方式一：直接使用（推荐）
+
+项目已包含 `config.yaml`，只需修改 `secret-key` 即可：
 
 ```bash
-tail -f $(ls -t logs/*.log 2>/dev/null | head -1)
-```
+# 1. 编辑配置文件
+nano config.yaml  # 修改第 19 行的 secret-key
 
-### Windows
-
-```batch
-FOR /F "delims=" %%i IN ('dir /b /o-d logs\*.log 2^>nul') DO set "LOG=%%i" & goto :found
-:found
-type "%LOG%" | more
-```
-
-## 更新机制
-
-- 启动时自动检查并更新主程序和管理面板
-- 使用 `--force` 或 `-f` 参数强制重新下载
-- 使用 `--plus` 参数切换到 Plus 版本
-- 版本信息保存在 `version.txt`
-
-### 版本切换
-
-普通版本和 Plus 版本使用独立的版本记录，可以同时安装：
-
-```bash
-# 安装普通版本
-node update.js
-
-# 安装 Plus 版本
-node update.js --plus
-
-# 启动普通版本
+# 2. 启动项目
 ./run.sh
 
-# 启动 Plus 版本
-./run.sh --plus
+# 3. 访问管理后台
+# http://localhost:8317/management.html
+# 使用你设置的 secret-key 登录
 ```
 
-## 平台支持
-
-- macOS (darwin)
-- Linux
-- Windows
-
-## 权限问题
-
-### macOS / Linux
-
-如果执行时提示权限不足：
+### 方式二：从示例配置开始
 
 ```bash
-chmod +x run.sh start.sh close.sh update.js cli-proxy-api cli-proxy-api-plus
+# 1. 复制示例配置
+cp config.example.yaml config.yaml
+
+# 2. 编辑配置，设置 secret-key
+nano config.yaml
+
+# 3. 启动项目
+./run.sh
 ```
 
-### Windows
+> **提示**: `secret-key` 用于登录管理后台，请设置一个安全的密钥
 
-确保 `cli-proxy-api.exe` 和 `node` 已添加到 PATH，或使用完整路径。
+## 🌐 Web 管理界面
 
-## 快捷指令配置
+访问地址：http://localhost:8317/management.html
+
+## 💡 快捷指令 (macOS)
 
 创建快捷指令，添加「运行 Shell 脚本」动作：
 
@@ -225,18 +150,20 @@ chmod +x run.sh start.sh close.sh update.js cli-proxy-api cli-proxy-api-plus
 /Applications/CLIProxyApi/start.sh
 ```
 
-停止命令会在启动后显示。
+## ⚙️ 平台支持
 
-## Web UI 
+- ✅ macOS (darwin)
+- ✅ Linux
+- ✅ Windows
 
-基础路径：http://localhost:8317/management.html
+## 🔧 权限设置
 
-## 使用方法
+### macOS / Linux
 
-1. 首次运行脚本，会自动下载必要文件
-2. 重命名配置文件：
-   ```bash
-   cp config.example.yaml config.yaml
-   ```
-3. 编辑 `config.yaml`，填入 `secret-key`
-4. 重新启动脚本，完成配置
+```bash
+chmod +x run.sh start.sh close.sh cli-proxy-api cli-proxy-api-plus
+```
+
+### Windows
+
+确保 `cli-proxy-api.exe` 和 `node` 在 PATH 中
