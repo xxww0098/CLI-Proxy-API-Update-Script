@@ -5,6 +5,9 @@ config.yaml
 # 版本信息
 version.txt
 
+# 代理配置（可能包含测试结果）
+proxy-config.json
+
 # 二进制文件
 cli-proxy-api
 cli-proxy-api-plus
@@ -16,11 +19,22 @@ static/
 # 日志目录
 logs/
 
+# 临时文件
+*.tmp
+*.log
+update.*.tar.gz
+extract.*/
+.*.new.*
+
 # Node.js
 node_modules/
+
+# 认证目录
+.cli-proxy-api/
 
 # macOS 系统文件
 .DS_Store
 
+# 项目文档（已从仓库移除）
 README_CN.md
 LICENSE

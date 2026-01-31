@@ -5,8 +5,34 @@ const https = require('https');
 const zlib = require('zlib');
 const os = require('os');
 const { execFileSync } = require('child_process');
+const { ProxyDownloader } = require('./proxy-downloader.js');
+
+/**
+ * 工具函数: 安全删除文件或目录
+ * @param {string} pathToRemove - 文件或目录路径
+ */
+function safeRemove(pathToRemove) {
+  try {
+    if (fs.existsSync(pathToRemove)) {
+      const stat = fs.statSync(pathToRemove);
+      if (stat.isDirectory()) {
+        fs.rmSync(pathToRemove, { recursive: true, force: true });
+      } else {
+        fs.unlinkSync(pathToRemove);
+      }
+    }
+  } catch (err) {
+    // 静默失败,避免干扰主流程
+  }
+}
 
 const isPlus = process.argv.includes('--plus');
+
+// 创建代理下载器实例
+const downloader = new ProxyDownloader({
+  configFile: 'proxy-config.json',
+  token: process.env.GITHUB_TOKEN || ''
+});
 
 const CONFIG = {
   apiEndpoint: isPlus
@@ -87,7 +113,7 @@ const findMatchingAsset = (assets, checksums, platform, arch, version) => {
 const clean = (pattern) => {
   fs.readdirSync(installDir).forEach(f => {
     if (pattern.test(f)) {
-      try { fs.rmSync(safePath(f), { recursive: true, force: true }); } catch {}
+      safeRemove(safePath(f));
     }
   });
 };
@@ -127,58 +153,6 @@ const httpsGet = (url, raw = false) => new Promise((resolve, reject) => {
   req.on('timeout', () => {
     req.destroy();
     reject(new Error('请求超时'));
-  });
-});
-
-const download = (url, dest, maxSize, label = '') => new Promise((resolve, reject) => {
-  const file = fs.createWriteStream(dest);
-  let downloaded = 0;
-  let lastPercent = 0;
-
-  const headers = { 'User-Agent': 'CLIProxy-Updater/1.0' };
-  if (CONFIG.token) headers['Authorization'] = `Bearer ${CONFIG.token}`;
-
-  https.get(url, { headers }, (res) => {
-    if (res.statusCode === 302 && res.headers.location) {
-      file.close();
-      fs.unlinkSync(dest);
-      res.destroy();
-      download(res.headers.location, dest, maxSize, label).then(resolve).catch(reject);
-      return;
-    }
-    if (res.statusCode !== 200) {
-      reject(new Error(`HTTP ${res.statusCode}`));
-      return;
-    }
-
-    const total = parseInt(res.headers['content-length']) || 0;
-
-    res.on('data', (chunk) => {
-      downloaded += chunk.length;
-      if (downloaded > maxSize) {
-        file.destroy();
-        fs.unlinkSync(dest);
-        reject(new Error('文件过大'));
-      }
-      if (total > 0) {
-        const percent = Math.floor((downloaded / total) * 100);
-        if (percent !== lastPercent && percent % 10 === 0) {
-          const labelText = label ? ` ${label}` : '';
-          process.stdout.write(`\r   📥 [下载${labelText}] ${percent}%`);
-          lastPercent = percent;
-        }
-      }
-    });
-
-    res.pipe(file);
-    file.on('finish', () => {
-      process.stdout.write('\n');
-      file.close();
-      resolve();
-    });
-  }).on('error', (err) => {
-    try { fs.unlinkSync(dest); } catch {}
-    reject(err);
   });
 });
 
@@ -385,7 +359,7 @@ async function updatePanel() {
     }
 
     console.log(`   📥 [UI界面] 下载 ${asset.name} (${(asset.size/1024/1024).toFixed(1)}MB)`);
-    await download(asset.browser_download_url, tmpPanel, CONFIG.panelMaxSize, 'UI界面');
+    await downloader.download(asset.browser_download_url, tmpPanel, CONFIG.panelMaxSize, 'UI界面');
 
     const content = fs.readFileSync(tmpPanel, 'utf8');
     if (!content.includes('<!DOCTYPE html>') && !content.includes('<html')) {
@@ -399,7 +373,7 @@ async function updatePanel() {
 
   } catch (err) {
     console.log(`   ❌ 错误: ${err.message}`);
-    try { fs.unlinkSync(tmpPanel); } catch {}
+    safeRemove(tmpPanel);
     throw err;
   }
 }
@@ -407,6 +381,10 @@ async function updatePanel() {
 const forceUpdate = process.argv.includes('--force') || process.argv.includes('-f');
 
 async function main() {
+  // 加载代理配置
+  const hasConfigFile = downloader.loadConfig(__dirname);
+  const proxyStatus = downloader.getStatus();
+
   const currentBin = safePath(CONFIG.binaryName);
   const tmpTar = safePath(`update.${tmpTag}.tar.gz`);
   const tmpDir = safePath(`extract.${tmpTag}`);
@@ -419,6 +397,17 @@ async function main() {
       console.log('🔄  CLI Proxy API 更新脚本');
     }
     console.log('');
+
+    if (hasConfigFile) {
+      console.log(`   📄 代理配置: ${proxyStatus.configFile}`);
+      console.log(`   🔧 代理模式: ${proxyStatus.enabled ? (proxyStatus.proxyOnly ? '仅代理' : '自动回退') : '已禁用'}`);
+      console.log(`   📊 代理数量: ${proxyStatus.proxyCount}`);
+      console.log('');
+    } else if (proxyStatus.enabled) {
+      console.log(`   📄 代理配置: 使用默认配置`);
+      console.log(`   📊 代理数量: ${proxyStatus.proxyCount}`);
+      console.log('');
+    }
 
     const { platform, arch } = getPlatformInfo();
     console.log(`   🖥️  平台: ${platform}-${arch}`);
@@ -457,8 +446,8 @@ async function main() {
 
     if (!binaryUpdated && !panelResult.updated) {
       console.log(`   ✅ ${versionLabel} 已是最新版本`);
-      try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch {}
-      try { fs.unlinkSync(tmpTar); } catch {}
+      safeRemove(tmpDir);
+      safeRemove(tmpTar);
       return;
     }
 
@@ -470,11 +459,12 @@ async function main() {
       }
 
       console.log(`   📥 ${versionLabel} 下载 ${asset.name} (${(asset.size/1024/1024).toFixed(1)}MB)`);
-      await download(asset.browser_download_url, tmpTar, CONFIG.maxSize, isPlus ? 'Plus' : '普通');
+      await downloader.download(asset.browser_download_url, tmpTar, CONFIG.maxSize, isPlus ? 'Plus' : '普通');
 
       console.log(`   📦 ${versionLabel} 解压中...`);
-      const { execSync } = require('child_process');
-      execSync(`tar -xzf "${tmpTar}" -C "${tmpDir}"`);
+      execFileSync('tar', ['-xzf', tmpTar, '-C', tmpDir], {
+        stdio: 'inherit'
+      });
 
       console.log(`   📂 ${versionLabel} 移动文件...`);
       fs.readdirSync(tmpDir).forEach(file => {
@@ -495,8 +485,8 @@ async function main() {
     const finalPanelVer = panelResult.updated ? panelResult.version : versions.panel;
     writeVersionFile(finalBinaryVer, finalPanelVer, isPlus);
 
-    try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch {}
-    try { fs.unlinkSync(tmpTar); } catch {}
+    safeRemove(tmpDir);
+    safeRemove(tmpTar);
     clean(/^update\.\d+\.tar\.gz$/);
 
     console.log('');
@@ -515,8 +505,8 @@ async function main() {
     console.log('❌ 更新失败:', err.message);
     console.log('');
 
-    try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch {}
-    try { fs.unlinkSync(tmpTar); } catch {}
+    safeRemove(tmpDir);
+    safeRemove(tmpTar);
 
     process.exit(1);
    }
